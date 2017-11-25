@@ -1182,7 +1182,7 @@ func (w *window) AddEventListener(typ string, useCapture bool, listener func(Eve
 	return wrapper
 }
 
-func (w *window) RemoveEventListener(typ string, useCapture bool, listener func(*js.Object)) {
+func (w *window) RemoveEventListener(typ string, useCapture bool, listener func(Event)) {
 	w.Call("removeEventListener", typ, listener, useCapture)
 }
 
