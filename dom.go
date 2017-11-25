@@ -535,17 +535,12 @@ type Document interface {
 	GetElementsByTagName(name string) []Element
 	GetElementsByTagNameNS(ns, name string) []Element
 	GetElementByID(id string) Element
-	QuerySelector(sel string) Element
-	QuerySelectorAll(sel string) []Element
-
 	CreateDocumentFragment() DocumentFragment
 }
 
 type DocumentFragment interface {
 	Node
 	ParentNode
-	QuerySelector(sel string) Element
-	QuerySelectorAll(sel string) []Element
 	GetElementByID(id string) Element
 }
 
@@ -1522,8 +1517,6 @@ type Element interface {
 	GetElementsByTagNameNS(ns string, name string) []Element
 	HasAttribute(string) bool
 	HasAttributeNS(ns string, name string) bool
-	QuerySelector(string) Element
-	QuerySelectorAll(string) []Element
 	RemoveAttribute(string)
 	RemoveAttributeNS(ns string, name string)
 	SetAttribute(name string, value string)
@@ -1532,6 +1525,10 @@ type Element interface {
 	SetInnerHTML(string)
 	OuterHTML() string
 	SetOuterHTML(string)
+	ChildElementCount() int
+	Children() []Element
+	FirstElementChild() Element
+	LastElementChild() Element
 }
 
 type ClientRect struct {
@@ -1545,7 +1542,8 @@ type ClientRect struct {
 }
 
 type ParentNode interface {
-	// No properties/methods that aren't experimental
+	QuerySelector(sel string) Element
+	QuerySelectorAll(sel string) []Element
 }
 
 type ChildNode interface {
@@ -1553,7 +1551,7 @@ type ChildNode interface {
 	NextElementSibling() Element
 }
 
-// Type BasicHTMLElement implements the HTMLElement interface and is
+// BasicHTMLElement implements the HTMLElement interface and is
 // embedded by concrete HTML element types.
 type BasicHTMLElement struct {
 	*BasicElement
@@ -1792,6 +1790,22 @@ func (e *BasicElement) OuterHTML() string {
 
 func (e *BasicElement) SetOuterHTML(s string) {
 	e.Set("outerHTML", s)
+}
+
+func (e *BasicElement) ChildElementCount() int {
+	return e.Get("childElementCount").Int()
+}
+
+func (e *BasicElement) Children() []Element {
+	return nodeListToElements(e.Get("children"))
+}
+
+func (e *BasicElement) FirstElementChild() Element {
+	return wrapElement(e.Get("firstElementChild"))
+}
+
+func (e *BasicElement) LastElementChild() Element {
+	return wrapElement(e.Get("lastElementChild"))
 }
 
 type HTMLAnchorElement struct {
