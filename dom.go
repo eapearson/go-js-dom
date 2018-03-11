@@ -1182,8 +1182,23 @@ func (w *window) AddEventListener(typ string, useCapture bool, listener func(Eve
 	return wrapper
 }
 
-func (w *window) RemoveEventListener(typ string, useCapture bool, listener func(Event)) {
+func (w *window) RemoveEventListener(typ string, useCapture bool, listener func(*js.Object)) {
 	w.Call("removeEventListener", typ, listener, useCapture)
+}
+
+func (w *window) AddEventListener2(typ string, useCapture bool, listener func(Event)) *EventListenerID {
+	return addEventListener(w, typ, useCapture, listener)
+	// wrapper := func(o *js.Object) { listener(wrapEvent(o)) }
+	// w.Call("addEventListener", typ, wrapper, useCapture)
+	// return &EventListenerID{
+	// 	typ:        string,
+	// 	useCapture: bool,
+	// 	listener:   wrapper}
+}
+
+func (w *window) RemoveEventListener2(id *EventListenerID) {
+	removeEventListener(w, id)
+	// w.Call("removeEventListener", id.typ, id.listener, id.useCapture)
 }
 
 func (w *window) DispatchEvent(event Event) bool {
@@ -1312,8 +1327,9 @@ type Console struct {
 type SVGDocument interface{}
 type DocumentType interface{}
 type DOMImplementation interface{}
-type StyleSheet interface{}
-type CSSStyleSheet interface{}
+
+// type StyleSheet interface{}
+// type CSSStyleSheet interface{}
 
 type Node interface {
 	EventTarget
@@ -1357,6 +1373,30 @@ type BasicNode struct {
 
 func (n *BasicNode) Underlying() *js.Object {
 	return n.Object
+}
+
+func addEventListener(t EventTarget, typ string, useCapture bool, listener func(Event)) *EventListenerID {
+	wrapper := func(o *js.Object) {
+		listener(wrapEvent(o))
+	}
+	// TODO: where does "Call" come from?
+	t.Call("addEventListener", typ, wrapper, useCapture)
+	return &EventListenerID{
+		typ:        typ,
+		useCapture: useCapture,
+		listener:   wrapper}
+}
+
+func removeEventListener(t EventTarget, id *EventListenerID) {
+	t.Call("removeEventListener", id.typ, id.listener, id.useCapture)
+}
+
+func (n *BasicNode) AddEventListener2(typ string, useCapture bool, listener func(Event)) *EventListenerID {
+	return addEventListener(n, typ, useCapture, listener)
+}
+
+func (n *BasicNode) RemoveEventListener2(id *EventListenerID) {
+	removeEventListener(n, id)
 }
 
 func (n *BasicNode) AddEventListener(typ string, useCapture bool, listener func(Event)) func(*js.Object) {

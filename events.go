@@ -119,6 +119,14 @@ const (
 	EvPhaseBubbling  = 3
 )
 
+// RawEvent represents the event handed by JS to the
+// a handler function. The reason for a separate RawEvent
+// is to provided a typed, well, raw event which cannot
+// really be used for anything useful until WrapEvent
+// determines the type of event and assigns it a type and
+// returns it as an Event interface...
+// type RawEvent interface{}
+
 type Event interface {
 	Bubbles() bool
 	Cancelable() bool
@@ -322,11 +330,34 @@ type WheelEvent struct {
 	DeltaMode int     `js:"deltaMode"`
 }
 
+type EventListenerID struct {
+	typ        string
+	useCapture bool
+	listener   func(o *js.Object)
+}
+
+type Callable interface {
+	Call(string, ...interface{}) *js.Object
+}
+
 type EventTarget interface {
+	Callable
 	// AddEventListener adds a new event listener and returns the
 	// wrapper function it generated. If using RemoveEventListener,
 	// that wrapper has to be used.
-	AddEventListener(typ string, useCapture bool, listener func(Event)) func(*js.Object)
-	RemoveEventListener(typ string, useCapture bool, listener func(*js.Object))
+	// To emphasize, because this takes some "unwrapping" for a js dom programmer...
+	// an AddEventListener implementation will need to embed the "listener"
+	// function inside an anonymous function which calls "wrapEvent" (which should
+	// perhaps be callsed "typeEvent") first, then passes the result to "listener".
+	// Thus the anonymous function (which takes a *js.Object and returns an Event)
+	// is the one that AddEventListener sees. Since RemoveEventListener works
+	// with the exact function provided to it, the anon function wrapper is the one
+	// that must be provided to it. The anon function wrapper is not otherwise known
+	// to the caller of AddEventListener, so it must be returned from it.
+	AddEventListener(typ string, useCapture bool, listener func(Event)) func(o *js.Object)
+	RemoveEventListener(typ string, useCapture bool, listener func(o *js.Object))
+	// RemoveEventListener2 is one attempt to abstract away this business.
+	AddEventListener2(typ string, useCapture bool, listener func(Event)) *EventListenerID
+	RemoveEventListener2(id *EventListenerID)
 	DispatchEvent(event Event) bool
 }
